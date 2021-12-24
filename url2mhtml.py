@@ -54,8 +54,7 @@ def _get_page(initial_url,save_path):
         res = browser.execute_cdp_cmd('Page.captureSnapshot', {})
         #html = browser.execute_cdp_cmd('return document.documentElement.outerHTML', {})
         #print(html)
-
-        
+ 
         #求文件MD5
         myhash = hashlib.md5()
         myhash.update(html.encode("utf8"))
@@ -80,16 +79,7 @@ def snapshot_page(url_file,result_path):
     # 获取sheet的最大行数和列数
     rows = ws.max_row
     cols = ws.max_column
-    #for r in range(1,rows):
-    #    for c in range(1,cols):
-    #        print(ws.cell(r,c).value)
-    #    if r==10:
-    #            break
-            
-    #sheet = readbook.sheet_by_index(0)
-    #nrows = sheet.nrows#行
-    #ncols = sheet.ncols#列
-    print(rows)
+
     for i in range(1,rows):             
         web = ws.cell(i+1,1).value #网站名称
         Section = ws.cell(i+1,2).value #板块名称
@@ -111,20 +101,11 @@ def snapshot_page(url_file,result_path):
         if not os.path.exists(newpath):
             os.makedirs(newpath)
             
-        #print(newpath)
         _get_page(url,newpath)
-        #time.sleep(5)
-        
-        #print("sss")
-        #print(url)
-        #_get_page(url,save_path)
-        #result_path=os.path.join(result_path,table.cell(1,i).value)
-        #if os.path.exists(os.path.join(result_path,table.cell(1,i).value)):            
-        #else:
-        #    os.makedirs(os.path.join(result_path,table.cell(1,i).value))
+
 
 if __name__ == '__main__':
-    page_url = f"https://qiita.com/mochi_yu2/items/e2480ae3b2a6db9d7a98"
+    #page_url = f"https://qiita.com/mochi_yu2/items/e2480ae3b2a6db9d7a98"
     save_path = r"/home/shalo/downloadMhtml"
     url_file = r"./config/urls.xlsx"
     
