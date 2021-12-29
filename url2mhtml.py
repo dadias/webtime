@@ -39,37 +39,46 @@ def get_browser():
     browser = webdriver.Chrome(options=get_profile())
     return browser
 
-def _get_page(initial_url,save_path):
-    print(initial_url)
-    browser = get_browser()
-    browser.get(initial_url)
-    time.sleep(5)
-
-    html = browser.page_source
-    if title := re.search("<title>(.*?)</title>", html, flags=re.S):
-        title = title.group(1)
-    if title != "404错误_C语言中文网" and title:
-        title = validateTitle(title)
-        # 执行 Chome 开发工具命令，得到mhtml内容
-        res = browser.execute_cdp_cmd('Page.captureSnapshot', {})
-        #html = browser.execute_cdp_cmd('return document.documentElement.outerHTML', {})
-        #print(html)
- 
-        #求文件MD5
-        myhash = hashlib.md5()
-        myhash.update(html.encode("utf8"))
-        pageMD5 = myhash.hexdigest()
-        print(pageMD5)
+def _get_page(initial_url,save_path):    
+    
+    options = webdriver.ChromeOptions()
+    options.add_argument('--headless')
+    options.add_argument('--no-sandbox')
+    options.add_argument('--disable-gpu')
+    
+    #with webdriver.Chrome(ChromeDriverManager().install()) as driver:   
+    with webdriver.Chrome(options=options) as driver: 
+        #driver.add_argument('--disable-gpu')
+        driver.get(initial_url)
+        # ページをMHTML形式で保存
+        time.sleep(3)
+        mhl = driver.execute_cdp_cmd("Page.captureSnapshot", {})
         
+        if mhl:
+            pass
+        else:#未获取到内容，等待6秒后再试一次
+            time.sleep(6)
+            mhl = driver.execute_cdp_cmd("Page.captureSnapshot", {})
+            if mhl:
+                pass
+            else:#未获取到内容，等待12秒后再试一次
+                time.sleep(12)
+                mhl = driver.execute_cdp_cmd("Page.captureSnapshot", {})
+            
+        #time.sleep(12)
+        mtitle = driver.title
+        #print(mtitle)
+        mtitle = validateTitle(mtitle)
+        #print(mtitle)
+
         #存储为mhtml
-        print(title)
         get_time = time.strftime("%Y-%m-%d_%H-%M-%S", time.localtime())
-        filename = os.path.join(save_path, '{}.mhtml'.format(title+get_time))
+        filename = os.path.join(save_path, '{}.mhtml'.format(mtitle+get_time))
         print(filename)
         with open(filename, 'w', newline='') as f:
-            f.write(res['data'])
+            f.write(mhl['data'])
         
-    browser.close()
+        driver.close()
     
 def snapshot_page(url_file,result_path):
     input_xlsx= openpyxl.load_workbook(url_file)
@@ -78,19 +87,27 @@ def snapshot_page(url_file,result_path):
     
     # 获取sheet的最大行数和列数
     rows = ws.max_row
-    cols = ws.max_column
+    #cols = ws.max_column
 
-    for i in range(1,rows):             
-        web = ws.cell(i+1,1).value #网站名称
-        Section = ws.cell(i+1,2).value #板块名称
-        url = ws.cell(i+1,3).value   #url地址
+    for i in range(1,rows):   
+        country  =  ws.cell(i+1,1).value # 国家地区       
+        web = ws.cell(i+1,2).value #网站名称
+        Section = ws.cell(i+1,3).value #板块名称
+        url = ws.cell(i+1,4).value   #url地址
         getdate = time.strftime("%Y-%m-%d", time.localtime()) #当前日期
-        
-        #创建首级目录-网站
-        newpath = os.path.join(result_path,web)        
+        #print(country)
+        #print(web)
+      
+        #创建首级目录-国家
+        newpath = os.path.join(result_path,country)        
         if not os.path.exists(newpath):
             os.makedirs(newpath)
         
+        #创建次级目录-网站
+        newpath = os.path.join(newpath,web)        
+        if not os.path.exists(newpath):
+            os.makedirs(newpath)
+            
         #以板块创建子目录
         newpath = os.path.join(newpath,Section)        
         if not os.path.exists(newpath):
@@ -101,13 +118,21 @@ def snapshot_page(url_file,result_path):
         if not os.path.exists(newpath):
             os.makedirs(newpath)
             
-        _get_page(url,newpath)
+        try:
+            _get_page(url,newpath)
+        except :
+            print("save mhtml error:")
+            print(url)
+            #print(newpath)
+            #time.sleep(5)
+            pass
+            #break
 
 
 if __name__ == '__main__':
     #page_url = f"https://qiita.com/mochi_yu2/items/e2480ae3b2a6db9d7a98"
     save_path = r"/home/shalo/downloadMhtml"
-    url_file = r"./config/urls.xlsx"
+    url_file = r"./config/urls5.xlsx"
     
     snapshot_page(url_file,save_path)
     #os.path.exists(save_path)
